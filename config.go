@@ -1,6 +1,8 @@
 package main
 
 import (
+	"blog-aggregator/internal/database"
+	"database/sql"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 	"log"
@@ -10,9 +12,11 @@ import (
 type Config struct {
 	env     Environment
 	corsOpt cors.Options
+	DB      *database.Queries
 }
 type Environment struct {
-	PORT string
+	PORT    string
+	DB_CONN string
 }
 
 func createConfig() *Config {
@@ -28,6 +32,11 @@ func createConfig() *Config {
 		AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"*"},
 	}
+	db, err := sql.Open("postgres", cfg.env.DB_CONN)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.DB = database.New(db)
 	return cfg
 }
 
@@ -39,5 +48,6 @@ func loadEnv() (env Environment, err error) {
 	}
 	env = Environment{}
 	env.PORT = os.Getenv("PORT")
+	env.DB_CONN = os.Getenv("DB_CONN")
 	return env, nil
 }

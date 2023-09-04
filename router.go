@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/go-chi/cors"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -15,14 +16,22 @@ func createRouter() *mux.Router {
 		ch := make(chan struct{})
 		go readinessHandler(w, r, ch)
 		<-ch
-	})
+	}).Methods("GET")
+	v1Router.HandleFunc("/err", errorHandler)
+	userRouter := v1Router.PathPrefix("/users").Subrouter()
+	userRouter.HandleFunc("/", createUser).Methods("POST")
 	return router
 }
+
+// Test responseWithJson
 func readinessHandler(w http.ResponseWriter, r *http.Request, ch chan<- struct{}) {
 
 	data := map[string]interface{}{
 		"status": "ok",
 	}
-	respondWithJSON(w, 200, data)
+	respondWithJSON(w, http.StatusOK, data)
 	ch <- struct{}{}
+}
+func errorHandler(w http.ResponseWriter, r *http.Request) {
+	respondWithError(w, http.StatusInternalServerError, errors.New("Internal Server Error"))
 }
