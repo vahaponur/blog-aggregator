@@ -8,44 +8,28 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
-func createUser(w http.ResponseWriter, r *http.Request) {
-	param := database.CreateUserParams{}
-	body, err := io.ReadAll(r.Body)
+func createUserHandler(w http.ResponseWriter, r *http.Request) {
+	param, err := parseCreateUserParams(r)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err)
-		return
+		respondWithError(w, http.StatusBadRequest, errors.New("Bad request"))
 	}
-	json.Unmarshal(body, &param)
-
-	param.CreatedAt = time.Now()
-	param.UpdatedAt = time.Now()
-	param.ID = uuid.New()
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
-	type UserJSON struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Name      string    `json:"name"`
-	}
+
 	type Response struct {
-		user UserJSON
+		user database.User
 		err  error
 	}
 	resChan := make(chan Response)
 
 	go func() {
 		user, err := cfg.DB.CreateUser(ctx, param)
-		resChan <- Response{err: err, user: UserJSON{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Name:      user.Name,
-		}}
+		resChan <- Response{err: err, user: user}
 	}()
 
 	for {
@@ -63,5 +47,39 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+
+}
+func parseCreateUserParams(r *http.Request) (database.CreateUserParams, error) {
+	param := database.CreateUserParams{}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return param, err
+	}
+	err = json.Unmarshal(body, &param)
+	if err != nil {
+		return param, err
+	}
+
+	param.CreatedAt = time.Now()
+	param.UpdatedAt = time.Now()
+	param.ID = uuid.New()
+
+	return param, nil
+}
+func getUserByApiKey(w http.ResponseWriter, r *http.Request) {
+	keyStr := r.Header.Get("Authorization")
+
+	apikey, ok := strings.CutPrefix(keyStr, "ApiKey ")
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, YouShallNotPass())
+		return
+	}
+	ctx := context.Background()
+	user, err := cfg.DB.GetUserByApikey(ctx, apikey)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondWithJSON(w, http.StatusOK, user)
 
 }
