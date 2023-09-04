@@ -56,6 +56,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		case resp := <-resChan:
 			if resp.err != nil {
 				respondWithError(w, http.StatusInternalServerError, errors.New("Something went wrong"))
+				return
 			}
 			respondWithJSON(w, http.StatusCreated, resp.user)
 			return
