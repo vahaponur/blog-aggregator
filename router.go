@@ -19,8 +19,11 @@ func createRouter() *mux.Router {
 	}).Methods("GET")
 	v1Router.HandleFunc("/err", errorHandler)
 	userRouter := v1Router.PathPrefix("/users").Subrouter()
-	userRouter.HandleFunc("/", createUserHandler).Methods("POST")
-	userRouter.HandleFunc("", getUserByApiKey)
+	userRouter.HandleFunc("", createUserHandler).Methods("POST")
+	userRouter.HandleFunc("", cfg.middlewareAuth(getUserByApiKey)).Methods("GET")
+	feedRouter := v1Router.PathPrefix("/feeds").Subrouter()
+	feedRouter.HandleFunc("", cfg.middlewareAuth(createFeed)).Methods("POST")
+	feedRouter.HandleFunc("", getAllFeeds).Methods("GET")
 	return router
 }
 

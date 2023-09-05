@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -66,20 +65,6 @@ func parseCreateUserParams(r *http.Request) (database.CreateUserParams, error) {
 
 	return param, nil
 }
-func getUserByApiKey(w http.ResponseWriter, r *http.Request) {
-	keyStr := r.Header.Get("Authorization")
-
-	apikey, ok := strings.CutPrefix(keyStr, "ApiKey ")
-	if !ok {
-		respondWithError(w, http.StatusUnauthorized, YouShallNotPass())
-		return
-	}
-	ctx := context.Background()
-	user, err := cfg.DB.GetUserByApikey(ctx, apikey)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err)
-		return
-	}
+func getUserByApiKey(w http.ResponseWriter, r *http.Request, user database.User) {
 	respondWithJSON(w, http.StatusOK, user)
-
 }
