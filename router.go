@@ -24,6 +24,10 @@ func createRouter() *mux.Router {
 	feedRouter := v1Router.PathPrefix("/feeds").Subrouter()
 	feedRouter.HandleFunc("", cfg.middlewareAuth(createFeed)).Methods("POST")
 	feedRouter.HandleFunc("", getAllFeeds).Methods("GET")
+	feed_followRouter := v1Router.PathPrefix("/feed_follows").Subrouter()
+	feed_followRouter.HandleFunc("", cfg.middlewareAuth(createFeedFollow)).Methods("POST")
+	feed_followRouter.HandleFunc("/{feedFollowID}", cfg.middlewareAuth(deleteFeedFollow)).Methods("DELETE")
+	feed_followRouter.HandleFunc("", cfg.middlewareAuth(getFollowedFeedsByUser)).Methods("GET")
 	return router
 }
 

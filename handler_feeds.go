@@ -18,17 +18,42 @@ func createFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
-	json.Unmarshal(body, &feed)
+	err = json.Unmarshal(body, &feed)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err)
+		return
+	}
 	feed.ID = uuid.New()
 	feed.CreatedAt = time.Now()
 	feed.UpdatedAt = time.Now()
 	feed.UserID = user.ID
-	data, err := cfg.DB.CreateFeed(context.Background(), feed)
+	ctx := context.Background()
+	data, err := cfg.DB.CreateFeed(ctx, feed)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondWithJSON(w, http.StatusOK, data)
+	data2, err := cfg.DB.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		FeedID:    data.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+	type CreateFeedResponse struct {
+		Feed       database.Feed       `json:"feed"`
+		FeedFollow database.FeedFollow `json:"feed_follow"`
+	}
+	responseModel := CreateFeedResponse{
+		Feed:       data,
+		FeedFollow: data2,
+	}
+
+	respondWithJSON(w, http.StatusOK, responseModel)
 }
 func getAllFeeds(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
