@@ -41,7 +41,7 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 				respondWithError(w, http.StatusInternalServerError, errors.New("Something went wrong"))
 				return
 			}
-			respondWithJSON(w, http.StatusCreated, resp.user)
+			respondWithJSON(w, http.StatusCreated, dbUserToUser(resp.user))
 			return
 		}
 
@@ -66,5 +66,5 @@ func parseCreateUserParams(r *http.Request) (database.CreateUserParams, error) {
 	return param, nil
 }
 func getUserByApiKey(w http.ResponseWriter, r *http.Request, user database.User) {
-	respondWithJSON(w, http.StatusOK, user)
+	respondWithJSON(w, http.StatusOK, dbUserToUser(user))
 }

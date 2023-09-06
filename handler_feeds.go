@@ -45,11 +45,11 @@ func createFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 		return
 	}
 	type CreateFeedResponse struct {
-		Feed       database.Feed       `json:"feed"`
+		Feed       Feed                `json:"feed"`
 		FeedFollow database.FeedFollow `json:"feed_follow"`
 	}
 	responseModel := CreateFeedResponse{
-		Feed:       data,
+		Feed:       dbFeedToFeed(data),
 		FeedFollow: data2,
 	}
 
