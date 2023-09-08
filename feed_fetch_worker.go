@@ -4,7 +4,7 @@ import (
 	"blog-aggregator/internal/database"
 	"context"
 	"database/sql"
-	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"net/url"
 	"sync"
@@ -21,8 +21,12 @@ func fetchNext(n int32, seconds int) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		feeds := make([]RssFeedXml, 0, 0)
-
+		type RssFeedModel struct {
+			feedXML RssFeedXml
+			feedId  uuid.UUID
+		}
+		feeds := make([]RssFeedModel, 0, 0)
+		//fetch
 		for _, v := range items {
 			wg.Add(1)
 			rp := v.Url
@@ -43,13 +47,55 @@ func fetchNext(n int32, seconds int) {
 						Valid: true,
 					},
 				})
-				fmt.Println(feed.Channel.Title)
-				feeds = append(feeds, feed)
+
+				model := RssFeedModel{
+					feedXML: feed,
+					feedId:  v.ID,
+				}
+				feeds = append(feeds, model)
 			}(v)
 
 		}
 		wg.Wait()
+		//write to db
+		for _, c := range feeds {
+			posts := c.feedXML.GetItems()
+			for _, post := range posts {
+				exist, err := cfg.DB.CheckPostExists(ctx, post.Link)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				if exist {
+					continue
+				}
+				cfg.DB.CreatePost(ctx, database.CreatePostParams{
+					ID:        uuid.New(),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+					Title:     post.Title,
+					Url:       post.Link,
+					Description: sql.NullString{
+						String: post.Description,
+						Valid:  post.Description != "",
+					},
+					PublishedAt: sql.NullTime{
+						Time:  parseXMLTime(post.PubDate),
+						Valid: true,
+					},
+					FeedID: c.feedId,
+				})
+			}
+		}
+
 		time.Sleep(time.Second * time.Duration(seconds))
 	}
 
+}
+
+func parseXMLTime(s string) time.Time {
+
+	layout := "Tue, 05 Sep 2023 08:00:00 -0000"
+	pubDate, _ := time.Parse(layout, s)
+	return pubDate
 }
