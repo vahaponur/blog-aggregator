@@ -14,7 +14,9 @@ import (
 var cfg *Config
 
 func main() {
+
 	cfg = createConfig()
+	go fetchNext(5, 10)
 	mainRouter := createRouter()
 	http.Handle("/", mainRouter)
 
