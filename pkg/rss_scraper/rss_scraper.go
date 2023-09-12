@@ -1,4 +1,4 @@
-package main
+package rss_scraper
 
 import (
 	"encoding/xml"

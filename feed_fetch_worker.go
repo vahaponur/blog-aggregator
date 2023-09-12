@@ -2,6 +2,7 @@ package main
 
 import (
 	"blog-aggregator/internal/database"
+	"blog-aggregator/pkg/rss_scraper"
 	"context"
 	"database/sql"
 	"github.com/google/uuid"
@@ -22,7 +23,7 @@ func fetchNext(n int32, seconds int) {
 			log.Fatal(err)
 		}
 		type RssFeedModel struct {
-			feedXML RssFeedXml
+			feedXML rss_scraper.RssFeedXml
 			feedId  uuid.UUID
 		}
 		feeds := make([]RssFeedModel, 0, 0)
@@ -35,7 +36,7 @@ func fetchNext(n int32, seconds int) {
 				defer mu.Unlock()
 				defer wg.Done()
 
-				feed, err := GetFeed(url.URL{RawPath: rp})
+				feed, err := rss_scraper.GetFeed(url.URL{RawPath: rp})
 				if err != nil {
 					log.Println(err)
 					return
@@ -61,6 +62,7 @@ func fetchNext(n int32, seconds int) {
 		for _, c := range feeds {
 			posts := c.feedXML.GetItems()
 			for _, post := range posts {
+
 				exist, err := cfg.DB.CheckPostExists(ctx, post.Link)
 				if err != nil {
 					log.Println(err)
